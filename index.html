@@ -167,9 +167,12 @@ const db = firebase.database();
 document.getElementById('fb-status').textContent = '✅ Firebase 연결됨';
 
 let allEntries = [];
-db.ref('leaderboard').orderByChild('dist').on('value', snap => {
+db.ref('leaderboard').on('value', snap => {
   allEntries = [];
-  snap.forEach(child => allEntries.push(child.val()));
+  snap.forEach(child => {
+    let v = child.val();
+    if(v && v.name && v.dist !== undefined) allEntries.push(v);
+  });
   allEntries.sort((a,b) => b.dist - a.dist);
   renderLb('lb-login', allEntries, null);
   renderLb('lb-game', allEntries, user);
@@ -204,15 +207,8 @@ function saveToFirebase(name, dist) {
   userRef.once('value').then(snap => {
     let existing = snap.val();
     if (!existing || dist > existing.dist) {
-      userRef.set({ name, dist, ts: Date.now() }).then(() => {
-        db.ref('leaderboard').orderByChild('dist').once('value', snap2 => {
-          allEntries = [];
-          snap2.forEach(child => allEntries.push(child.val()));
-          allEntries.sort((a,b) => b.dist - a.dist);
-          renderLb('lb-game', allEntries, user);
-          renderLb('lb-login', allEntries, null);
-        });
-      });
+      userRef.set({ name, dist, ts: Date.now() });
+      // on('value') listener가 자동으로 갱신함
     }
   });
 }
